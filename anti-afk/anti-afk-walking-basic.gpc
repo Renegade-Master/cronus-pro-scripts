@@ -1,0 +1,48 @@
+/* ********************************************************** *
+*
+* GPC SCRIPT for preventing AFK from triggering.
+*
+* *********************************************************** */
+
+int runAntiAfk;
+
+
+/**
+*	Initialise Script
+*/
+init {
+	runAntiAfk = FALSE;
+}
+
+
+/**
+*	Main Loop
+*/
+main {
+	if (event_press(PS4_TRIANGLE) && event_press(PS4_SQUARE)) {
+		runAntiAfk = TRUE;
+	}
+	if (event_press(PS4_CIRCLE) && event_press(PS4_CROSS)) {
+		runAntiAfk = FALSE;
+	}
+
+	if (!combo_running(ANTI_AFK) && runAntiAfk) {
+		combo_restart(ANTI_AFK);
+	} else {
+		set_val(PS4_LY, 0);
+		set_val(PS4_LX, 0);
+	}
+}
+
+
+/**
+* Anti AFK Macro
+*/
+combo ANTI_AFK {
+	set_val(PS4_LX, 0);
+	set_val(PS4_LY, -100);
+	wait(5000);
+	set_val(PS4_LY, 0);
+	set_val(PS4_LX, -100);
+	wait(5000);
+}
