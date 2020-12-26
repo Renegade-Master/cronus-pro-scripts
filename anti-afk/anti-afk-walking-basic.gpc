@@ -5,6 +5,9 @@
 * *********************************************************** */
 
 int runAntiAfk;
+int random_num;
+int temp_rand_1;
+int temp_rand_2;
 
 
 /**
@@ -67,6 +70,13 @@ combo ANTI_AFK {
 function reset_movement() {
 	set_val(PS4_LX, 0);	
 	set_val(PS4_LY, 0);
+
+	if (random_number(0, 10) == 0) {
+		aim_and_look();
+	} else {
+		set_val(PS4_LX, 0);
+		set_val(PS4_L2, 0);
+	}
 }
 
 
@@ -92,4 +102,41 @@ function right() {
 function forwards() {
 	//set_val(PS4_CROSS, 100);
 	set_val(PS4_LY, -100);
+}
+
+
+/**
+* Aim and look around
+*/
+function aim_and_look() {
+	set_val(PS4_L2, 100);
+
+	set_val(PS4_RX, random_number(-75, 75));
+}
+
+/****/
+
+/**
+*	Wrapper for Pseudo Random Number Generator
+*/
+function random_number(int low, int high) {
+	random_num = low + (high - low) * prandom(16807, (pow(2, 16)) - 1, 32766);
+
+	return random_num;
+}
+
+
+/**
+*	Pseudo Random Number Generator
+*/
+function prandom(int mult, int mod, int seed) {
+	temp_rand_1 = 0;
+
+	temp_rand_2 = (seed * mult + 1) % mod;
+	temp_rand_1 = temp_rand_1/mod;
+
+	temp_rand_2 = (temp_rand_2 * mult + 1) % mod;
+	temp_rand_1 = temp_rand_2/mod;
+
+	return temp_rand_1;
 }
