@@ -39,10 +39,57 @@ main {
 * Anti AFK Macro
 */
 combo ANTI_AFK {
-	set_val(PS4_LX, 0);
-	set_val(PS4_LY, -100);
+	// Walk forwards 
+	reset_movement();
+	forwards();
+	wait(7500);
+
+	// Walk left
+	reset_movement();
+	left();
 	wait(5000);
+
+	// Walk forwards
+	reset_movement();
+	forwards();
+	wait(7500);
+
+	// Walk right
+	reset_movement();
+	right();
+	wait(5000);
+}
+
+
+/** 
+* Reset movement to stationary
+*/
+function reset_movement() {
+	set_val(PS4_LX, 0);	
 	set_val(PS4_LY, 0);
+}
+
+
+/** 
+* Walk left
+*/
+function left() {
 	set_val(PS4_LX, -100);
-	wait(5000);
+}
+
+
+/** 
+* Walk right
+*/
+function right() {
+	set_val(PS4_LX, 100);
+}
+
+
+/** 
+* Walk forwards
+*/
+function forwards() {
+	set_val(PS4_CROSS, 100);
+	set_val(PS4_LY, -100);
 }
