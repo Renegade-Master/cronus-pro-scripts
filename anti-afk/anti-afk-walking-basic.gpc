@@ -90,6 +90,6 @@ function right() {
 * Walk forwards
 */
 function forwards() {
-	set_val(PS4_CROSS, 100);
+	//set_val(PS4_CROSS, 100);
 	set_val(PS4_LY, -100);
 }
