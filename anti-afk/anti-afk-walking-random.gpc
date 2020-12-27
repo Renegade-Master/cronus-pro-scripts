@@ -1,13 +1,15 @@
-/* ********************************************************** * 
-*
-* GPC SCRIPT for preventing AFK from triggering.
-*
-* *********************************************************** */
+/* **********************************************\
+|                                                |
+| GPC SCRIPT for preventing AFK from triggering. |
+|                                                |
+\* **********************************************/
 
 int INT_MAX;
 int MAX_AIM_TIME;
+int NO_AIM_TIME;
 
 int run_time;
+int last_time;
 
 int runAntiAfk;
 int rand_num;
@@ -16,13 +18,15 @@ int currently_aiming;
 
 
 /**
-*	Initialise Script
+* Initialise Script
 */
-init {	
+init {
 	INT_MAX = 32767;
-	MAX_AIM_TIME = 5000;
+	MAX_AIM_TIME = 3500;
+	NO_AIM_TIME = 10000;
 	run_time = 0;
-	
+	last_time = 0;
+
 	runAntiAfk = FALSE;
 	rand_num = 0;
 	aiming_time = 0;
@@ -31,17 +35,20 @@ init {
 
 
 /**
-*	Main Loop
+* Main Loop
 */
-main {	
+main {
 	// Update run_time
+	last_time = run_time;
 	run_time += get_rtime();
-	
+
+	set_val(TRACE_4, currently_aiming);
+
 	// Request to turn ON the macro
 	if (event_press(PS4_TRIANGLE) && event_press(PS4_SQUARE)) {
 		runAntiAfk = TRUE;
 	}
-	
+
 	// Request to turn OFF the macro
 	if (event_press(PS4_CIRCLE) && event_press(PS4_CROSS)) {
 		runAntiAfk = FALSE;
@@ -52,12 +59,10 @@ main {
 		combo_run(ANTI_AFK);
 	} else { // If the macro should be OFF
 		combo_stop(ANTI_AFK);
-		set_val(PS4_LY, 0);
-		set_val(PS4_LX, 0);
 	}
-	
+
 	// Sometimes aim and look around
-	if (random_number(0, 10) < (-5) && !currently_aiming) {
+	if ((random_number(0, 10) < 2) && !currently_aiming) {
 		combo_run(AIM_AND_LOOK);
 	}
 }
@@ -88,50 +93,23 @@ combo ANTI_AFK {
 	wait(5000);
 }
 
-combo AIM_AND_LOOK {
-	currently_aiming = TRUE;
-
-	set_val(PS4_L2, 100);	
-	set_val(PS4_RX, 50);
-	
-	wait(MAX_AIM_TIME);
-	
-	currently_aiming = FALSE;
-	
-	set_val(PS4_L2, 0);	
-	set_val(PS4_RX, 0);
-}
-
 
 /**
-* Reset movement to stationary
+* Aim and Look Macro
 */
-function reset_movement() {
-	set_val(PS4_LX, 0);
-	set_val(PS4_LY, 0);
-	
-	//set_val(TRACE_3, currently_aiming);
+combo AIM_AND_LOOK {
+	currently_aiming = TRUE;
+	aim_and_look();
 
-	// If not already aiming
-	//if (!currently_aiming) {
-	//	set_val(TRACE_4, 0);
-	//
-	//	set_val(PS4_RX, 0);
-	//	set_val(PS4_L2, 0);
-	//	
-	//	aim_and_look();
-	//} else { // If already aiming	
-	//	aiming_time += get_rtime();
-	//	set_val(TRACE_4, aiming_time);
-	//	
-	//	// If aiming has gone on long enough
-	//	if (aiming_time > MAX_AIM_TIME) {
-	//		currently_aiming = FALSE;
-	//		aiming_time = 0;
-	//	}
-	//}
+	wait(MAX_AIM_TIME);
+
+	currently_aiming = FALSE;
+	reset_aim();
+
+	wait(NO_AIM_TIME)
 }
 
+/****/
 
 /**
 * Walk left
@@ -158,16 +136,29 @@ function forwards() {
 
 
 /**
+* Reset movement to stationary
+*/
+function reset_movement() {
+	set_val(PS4_LX, 0);
+	set_val(PS4_LY, 0);
+}
+
+
+/**
 * Aim and look around
 */
 function aim_and_look() {
-	// Randomly decide to aim
-	//if (random_number(0, 10) < 2) {	
-	//	currently_aiming = TRUE;
-	//	
-	//	set_val(PS4_L2, 100);	
-	//	set_val(PS4_RX, 50);
-	//}
+	set_val(PS4_L2, 100);
+	set_val(PS4_RX, 50);
+}
+
+
+/**
+* Reset Aim and look around
+*/
+function reset_aim() {
+	set_val(PS4_L2, 0);
+	set_val(PS4_RX, 0);
 }
 
 /****/
@@ -176,11 +167,8 @@ function aim_and_look() {
 * Pseudo Random Number Generator
 */
 function random_number(int low, int high) {
-	//rand_num = (run_time % ((high - low) + 1)) + low;
-	rand_num = (low + run_time) / (INT_MAX / ((high - low) + 1) + 1);
-	//rand_num = low + ((1 + high - low) * run_time) / (1 + INT_MAX);
-	//rand_num = (run_time % (high - low + 1)) + low;
-	
+	rand_num = abs((last_time * run_time) / (INT_MAX / ((high - low) + 1) + 1));
+
 	// Debug random number
 	set_val(TRACE_6, rand_num);
 
