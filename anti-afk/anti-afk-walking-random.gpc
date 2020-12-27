@@ -1,48 +1,61 @@
-/* **********************************************\
+/************************************************\
 |                                                |
 | GPC SCRIPT for preventing AFK from triggering. |
+| Also features a Random Number Generator.       |
 |                                                |
-\* **********************************************/
+\************************************************/
 
+// Constant values
+int AIM_CHANCE;
 int INT_MAX;
 int MAX_AIM_TIME;
 int NO_AIM_TIME;
+int STRAFE_TIME;
+int TURN_SPEED;
+int WALK_TIME;
 
-int run_time;
-int last_time;
+// Time management
+int lastTime;
+int runTime;
 
+// Runtime variables
+int currentlyAiming;
+int lookToRight;
+int randNum;
 int runAntiAfk;
-int rand_num;
-int aiming_time;
-int currently_aiming;
 
 
-/**
-* Initialise Script
-*/
+/*******************\
+| Initialise Script |
+\*******************/
 init {
+	AIM_CHANCE = 5;
 	INT_MAX = 32767;
 	MAX_AIM_TIME = 3500;
 	NO_AIM_TIME = 10000;
-	run_time = 0;
-	last_time = 0;
+	STRAFE_TIME = 4000;
+	TURN_SPEED = 75;
+	WALK_TIME = 7500;
 
+	lastTime = 0;
+	runTime = 0;
+
+	currentlyAiming = FALSE;
+	lookToRight = FALSE;
+	randNum = 0;
 	runAntiAfk = FALSE;
-	rand_num = 0;
-	aiming_time = 0;
-	currently_aiming = FALSE;
 }
 
 
-/**
-* Main Loop
-*/
+/***********\
+| Main Loop |
+\***********/
 main {
-	// Update run_time
-	last_time = run_time;
-	run_time += get_rtime();
+	// Update runTime
+	lastTime = runTime;
+	runTime += get_rtime();
 
-	set_val(TRACE_4, currently_aiming);
+	set_val(TRACE_5, currentlyAiming);
 
 	// Request to turn ON the macro
 	if (event_press(PS4_TRIANGLE) && event_press(PS4_SQUARE)) {
@@ -52,21 +65,25 @@ main {
 	// Request to turn OFF the macro
 	if (event_press(PS4_CIRCLE) && event_press(PS4_CROSS)) {
 		runAntiAfk = FALSE;
+		combo_stop(ANTI_AFK);
 	}
 
 	// If the macro should be ON
 	if (runAntiAfk) {
 		combo_run(ANTI_AFK);
+
+		// Sometimes aim and look around
+		if ((random_number(0, 100) < AIM_CHANCE) && !currentlyAiming) {
+			combo_run(AIM_AND_LOOK);
+		}
 	} else { // If the macro should be OFF
 		combo_stop(ANTI_AFK);
 	}
-
-	// Sometimes aim and look around
-	if ((random_number(0, 10) < 2) && !currently_aiming) {
-		combo_run(AIM_AND_LOOK);
-	}
 }
 
+/********\
+| Combos |
+\********/
 
 /**
 * Anti AFK Macro
@@ -74,23 +91,23 @@ main {
 combo ANTI_AFK {
 	// Walk forwards
 	reset_movement();
-	forwards();
-	wait(7500);
+	walk(TRUE);
+	wait(WALK_TIME);
 
 	// Walk left
 	reset_movement();
-	left();
-	wait(5000);
+	strafe(FALSE);
+	wait(STRAFE_TIME);
 
 	// Walk forwards
 	reset_movement();
-	forwards();
-	wait(7500);
+	walk(TRUE);
+	wait(WALK_TIME);
 
 	// Walk right
 	reset_movement();
-	right();
-	wait(5000);
+	strafe(TRUE);
+	wait(STRAFE_TIME);
 }
 
 
@@ -98,40 +115,47 @@ combo ANTI_AFK {
 * Aim and Look Macro
 */
 combo AIM_AND_LOOK {
-	currently_aiming = TRUE;
+	currentlyAiming = TRUE;
 	aim_and_look();
 
 	wait(MAX_AIM_TIME);
 
-	currently_aiming = FALSE;
+	currentlyAiming = FALSE;
 	reset_aim();
 
 	wait(NO_AIM_TIME)
+	lookToRight = !lookToRight;
 }
 
-/****/
+/***********\
+| Functions |
+\***********/
 
 /**
-* Walk left
+* Strafe to the side
+*
+* @param to_the_right Integer value representing strafe direction.
 */
-function left() {
-	set_val(PS4_LX, -100);
+function strafe(int to_the_right) {
+	if (to_the_right) {
+		set_val(PS4_LX, 100);
+	} else {
+		set_val(PS4_LX, -100);
+	}
 }
 
 
 /**
-* Walk right
+* Walk
+*
+* @param forwards Integer value representing walk direction.
 */
-function right() {
-	set_val(PS4_LX, 100);
-}
-
-
-/**
-* Walk forwards
-*/
-function forwards() {
-	set_val(PS4_LY, -100);
+function walk(int forwards) {
+	if (forwards) {
+		set_val(PS4_LY, -100);
+	} else {
+		set_val(PS4_LY, 100);
+	}
 }
 
 
@@ -149,12 +173,17 @@ function reset_movement() {
 */
 function aim_and_look() {
 	set_val(PS4_L2, 100);
-	set_val(PS4_RX, 50);
+
+	if (lookToRight) {
+		set_val(PS4_RX, TURN_SPEED);
+	} else {
+		set_val(PS4_RX, inv(TURN_SPEED));
+	}
 }
 
 
 /**
-* Reset Aim and look around
+* Reset Aim and look direction
 */
 function reset_aim() {
 	set_val(PS4_L2, 0);
@@ -165,12 +194,19 @@ function reset_aim() {
 
 /**
 * Pseudo Random Number Generator
+*
+*
+* @param low Integer value representing minimum desired value.
+* @param high Integer value representing maximum desired value.
+*
+* @return A random number between the specified HIGH and LOW values.
 */
 function random_number(int low, int high) {
-	rand_num = abs((last_time * run_time) / (INT_MAX / ((high - low) + 1) + 1));
+	//randNum = abs((lastTime * runTime) / (INT_MAX / ((high - low) + 1) + 1));
+	randNum = abs(runTime % (high - low + 1) + low);
 
 	// Debug random number
-	set_val(TRACE_6, rand_num);
+	set_val(TRACE_6, randNum);
 
-	return rand_num;
+	return randNum;
 }
