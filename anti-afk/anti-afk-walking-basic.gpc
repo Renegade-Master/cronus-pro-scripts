@@ -5,9 +5,10 @@
 * *********************************************************** */
 
 int runAntiAfk;
-int random_num;
-int temp_rand_1;
-int temp_rand_2;
+int last_seed;
+int mult;
+int mod;
+int rand_num;
 
 
 /**
@@ -15,6 +16,10 @@ int temp_rand_2;
 */
 init {
 	runAntiAfk = FALSE;
+	last_seed = 32767;
+	mult = 16807;
+	mod = pow(2, 16) - 1;
+	rand_num = 0;
 }
 
 
@@ -42,7 +47,7 @@ main {
 * Anti AFK Macro
 */
 combo ANTI_AFK {
-	// Walk forwards 
+	// Walk forwards
 	reset_movement();
 	forwards();
 	wait(7500);
@@ -64,23 +69,24 @@ combo ANTI_AFK {
 }
 
 
-/** 
+/**
 * Reset movement to stationary
 */
 function reset_movement() {
-	set_val(PS4_LX, 0);	
+	set_val(PS4_LX, 0);
 	set_val(PS4_LY, 0);
 
-	if (random_number(0, 10) == 0) {
-		aim_and_look();
-	} else {
-		set_val(PS4_LX, 0);
-		set_val(PS4_L2, 0);
-	}
+	// Sometimes look around while aiming
+	// if (random_number(0, 5) < 3) {
+	// 	aim_and_look();
+	// } else {
+	// 	set_val(PS4_RX, 0);
+	// 	set_val(PS4_L2, 0);
+	// }
 }
 
 
-/** 
+/**
 * Walk left
 */
 function left() {
@@ -88,7 +94,7 @@ function left() {
 }
 
 
-/** 
+/**
 * Walk right
 */
 function right() {
@@ -96,11 +102,10 @@ function right() {
 }
 
 
-/** 
+/**
 * Walk forwards
 */
 function forwards() {
-	//set_val(PS4_CROSS, 100);
 	set_val(PS4_LY, -100);
 }
 
@@ -117,26 +122,20 @@ function aim_and_look() {
 /****/
 
 /**
-*	Wrapper for Pseudo Random Number Generator
+*	Pseudo Random Number Generator
 */
-function random_number(int low, int high) {
-	random_num = low + (high - low) * prandom(16807, (pow(2, 16)) - 1, 32766);
+function prandom() {
+	last_seed = (mult * last_seed) % mod;
 
-	return random_num;
+    return last_seed / mod;
 }
 
 
 /**
-*	Pseudo Random Number Generator
+*	Wrapper for Pseudo Random Number Generator
 */
-function prandom(int mult, int mod, int seed) {
-	temp_rand_1 = 0;
+function random_number(int low, int high) {
+	rand_num = (prandom() % (high - low + 1)) + low;
 
-	temp_rand_2 = (seed * mult + 1) % mod;
-	temp_rand_1 = temp_rand_1/mod;
-
-	temp_rand_2 = (temp_rand_2 * mult + 1) % mod;
-	temp_rand_1 = temp_rand_2/mod;
-
-	return temp_rand_1;
+	return rand_num;
 }
