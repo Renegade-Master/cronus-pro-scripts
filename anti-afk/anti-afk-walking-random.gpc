@@ -20,7 +20,6 @@ int runTime;
 
 // Runtime variables
 int currentlyAiming;
-int lookToRight;
 int randNum;
 int runAntiAfk;
 
@@ -29,7 +28,7 @@ int runAntiAfk;
 | Initialise Script |
 \*******************/
 init {
-	AIM_CHANCE = 5;
+	AIM_CHANCE = 20;
 	INT_MAX = 32767;
 	MAX_AIM_TIME = 3500;
 	NO_AIM_TIME = 10000;
@@ -41,7 +40,6 @@ init {
 	runTime = 0;
 
 	currentlyAiming = FALSE;
-	lookToRight = FALSE;
 	randNum = 0;
 	runAntiAfk = FALSE;
 }
@@ -55,142 +53,158 @@ main {
 	lastTime = runTime;
 	runTime += get_rtime();
 
-	set_val(TRACE_5, currentlyAiming);
-
-	// Request to turn ON the macro
+	// Turn ON the macro
 	if (event_press(PS4_TRIANGLE) && event_press(PS4_SQUARE)) {
 		runAntiAfk = TRUE;
 	}
 
-	// Request to turn OFF the macro
+	// Turn OFF the macro
 	if (event_press(PS4_CIRCLE) && event_press(PS4_CROSS)) {
 		runAntiAfk = FALSE;
-		combo_stop(ANTI_AFK);
 	}
 
 	// If the macro should be ON
 	if (runAntiAfk) {
 		combo_run(ANTI_AFK);
-
-		// Sometimes aim and look around
-		if ((random_number(0, 100) < AIM_CHANCE) && !currentlyAiming) {
-			combo_run(AIM_AND_LOOK);
-		}
 	} else { // If the macro should be OFF
 		combo_stop(ANTI_AFK);
 	}
 }
 
-/********\
-| Combos |
-\********/
+
+/*********\
+| Actions |
+\*********/
 
 /**
 * Anti AFK Macro
 */
 combo ANTI_AFK {
 	// Walk forwards
-	reset_movement();
-	walk(TRUE);
-	wait(WALK_TIME);
+	call(WALK_FORWARDS);
+	try_to_look();
 
-	// Walk left
-	reset_movement();
-	strafe(FALSE);
+	// Strafe to the side
+	strafe_to_the_side();
+	try_to_look();
+}
+
+
+/**
+* Strafe to the right
+*/
+combo STRAFE_RIGHT {
+	set_val(PS4_LX, 100);
+
 	wait(STRAFE_TIME);
 
-	// Walk forwards
-	reset_movement();
-	walk(TRUE);
-	wait(WALK_TIME);
-
-	// Walk right
-	reset_movement();
-	strafe(TRUE);
-	wait(STRAFE_TIME);
-}
-
-
-/**
-* Aim and Look Macro
-*/
-combo AIM_AND_LOOK {
-	currentlyAiming = TRUE;
-	aim_and_look();
-
-	wait(MAX_AIM_TIME);
-
-	currentlyAiming = FALSE;
-	reset_aim();
-
-	wait(NO_AIM_TIME)
-	lookToRight = !lookToRight;
-}
-
-/***********\
-| Functions |
-\***********/
-
-/**
-* Strafe to the side
-*
-* @param to_the_right Integer value representing strafe direction.
-*/
-function strafe(int to_the_right) {
-	if (to_the_right) {
-		set_val(PS4_LX, 100);
-	} else {
-		set_val(PS4_LX, -100);
-	}
-}
-
-
-/**
-* Walk
-*
-* @param forwards Integer value representing walk direction.
-*/
-function walk(int forwards) {
-	if (forwards) {
-		set_val(PS4_LY, -100);
-	} else {
-		set_val(PS4_LY, 100);
-	}
-}
-
-
-/**
-* Reset movement to stationary
-*/
-function reset_movement() {
 	set_val(PS4_LX, 0);
+}
+
+
+/**
+* Strafe to the left
+*/
+combo STRAFE_LEFT {
+	set_val(PS4_LX, -100);
+
+	wait(STRAFE_TIME);
+
+	set_val(PS4_LX, 0);
+}
+
+
+/**
+* Walk forwards
+*/
+combo WALK_FORWARDS {
+	set_val(PS4_LY, -100);
+
+	wait(WALK_TIME);
+
 	set_val(PS4_LY, 0);
 }
 
 
 /**
-* Aim and look around
+* Walk backwards
 */
-function aim_and_look() {
-	set_val(PS4_L2, 100);
+combo WALK_BACKWARDS {
+	set_val(PS4_LY, 100);
 
-	if (lookToRight) {
-		set_val(PS4_RX, TURN_SPEED);
+	wait(WALK_TIME);
+
+	set_val(PS4_LY, 0);
+}
+
+
+/**
+* Aim and look to right
+*/
+combo AIM_AND_LOOK_TO_RIGHT {
+	currentlyAiming = TRUE;
+	set_val(PS4_L2, 100);
+	set_val(PS4_RX, TURN_SPEED);
+
+	wait(MAX_AIM_TIME);
+
+	set_val(PS4_RX, 0);
+	set_val(PS4_L2, 0);
+	currentlyAiming = FALSE;
+}
+
+
+/**
+* Aim and look to left
+*/
+combo AIM_AND_LOOK_TO_LEFT {
+	currentlyAiming = TRUE;
+	set_val(PS4_L2, 100);
+	set_val(PS4_RX, inv(TURN_SPEED));
+
+	wait(MAX_AIM_TIME);
+
+	set_val(PS4_RX, 0);
+	set_val(PS4_L2, 0);
+	currentlyAiming = FALSE;
+}
+
+
+/***********\
+| Functions |
+\***********/
+
+
+/**
+* Choose a side to strafe to
+*/
+function strafe_to_the_side() {
+
+	// Randomly decide between strafing left or right
+	if (random_number(0, 100) % 2) {
+		combo_run(STRAFE_RIGHT);
 	} else {
-		set_val(PS4_RX, inv(TURN_SPEED));
+		combo_run(STRAFE_LEFT);
 	}
 }
 
 
 /**
-* Reset Aim and look direction
+* Attempt to aim and look around
 */
-function reset_aim() {
-	set_val(PS4_L2, 0);
-	set_val(PS4_RX, 0);
+function try_to_look() {
+	// Sometimes aim and look around
+	if ((random_number(0, 100) < AIM_CHANCE) && !currentlyAiming) {
+
+		// Randomly decide between looking left or right
+		if (random_number(0, 100) % 2) {
+			combo_run(AIM_AND_LOOK_TO_RIGHT);
+		} else {
+			combo_run(AIM_AND_LOOK_TO_LEFT);
+		}
+	}
 }
 
-/****/
 
 /**
 * Pseudo Random Number Generator
@@ -202,7 +216,6 @@ function reset_aim() {
 * @return A random number between the specified HIGH and LOW values.
 */
 function random_number(int low, int high) {
-	//randNum = abs((lastTime * runTime) / (INT_MAX / ((high - low) + 1) + 1));
 	randNum = abs(runTime % (high - low + 1) + low);
 
 	// Debug random number
